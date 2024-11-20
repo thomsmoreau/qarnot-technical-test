@@ -6,7 +6,8 @@
 # Usage with poetry
 
 - **Install poetry**: https://python-poetry.org/docs/
-- **Example command**: `$ poetry run python s3_synchroniser/main.py --endpoint_url http://127.0.0.1:9000 --bucket_name test --local_path ./data_to_sync --create_bucket True`
+- Run a local Minio container if you need to, the command is given below
+- **Example command**: `$ poetry run python s3_synchroniser/main.py --endpoint_url http://S3_HOST:9000 --bucket_name NAME_OF_YOUR_BUCKET --local_path ./data_to_sync --create_bucket True`
 
 # Usage with docker
 
