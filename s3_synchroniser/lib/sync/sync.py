@@ -32,10 +32,10 @@ def sync_files_with_s3(s3_manager: S3Manager):
             )
             s3_mtime = s3_manager.get_object_last_modified(local_file)
             if s3_mtime and local_mtime > s3_mtime:
-                LOGGER.info(f"Updating modified file '{local_file}' in S3")
+                LOGGER.info("Updating modified file '%s' in S3", local_file)
                 s3_manager.upload_file(local_file, local_file)
             else:
-                LOGGER.info(f"No changes detected for '{local_file}'")
+                LOGGER.info("No changes detected for '%s'", local_file)
 
     for s3_file in s3_files:
         if s3_file not in local_files:
