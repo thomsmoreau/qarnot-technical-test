@@ -1,6 +1,5 @@
 import argparse
 import os
-from ast import arg
 from dataclasses import dataclass
 from typing import Optional
 
@@ -22,6 +21,7 @@ class S3Credentials:
                 "S3 credentials are missing from the .env export them as S3_ACCESS_KEY and S3_SECRET_KEY"
             )
 
+
 @dataclass
 class S3Configuration:
     credentials: S3Credentials
@@ -30,19 +30,6 @@ class S3Configuration:
     create_bucket: bool
     local_path: str
     aws_region: Optional[str]
-
-
-def get_credentials_from_env() -> S3Credentials:
-    # Load credentials from environment variables
-    access_key = os.getenv("S3_ACCESS_KEY")
-    secret_key = os.getenv("S3_SECRET_KEY")
-
-    if not access_key or not secret_key:
-        raise ValueError(
-            "S3 credentials are missing from the .env export them as S3_ACCESS_KEY and S3_SECRET_KEY"
-        )
-
-    return S3Credentials(access_key=access_key, secret_key=secret_key)
 
 
 def parse_command_line_args() -> argparse.Namespace:
@@ -54,28 +41,37 @@ def parse_command_line_args() -> argparse.Namespace:
     parser.add_argument(
         "--endpoint_url",
         required=True,
+        dest="endpoint_url",
         help="The S3 endpoint URL.",
     )
     parser.add_argument(
         "--bucket_name",
+        dest="bucket_name",
         required=True,
         help="The name of the S3 bucket.",
     )
     parser.add_argument(
         "--local_path",
+        dest="local_path",
         required=True,
         help="Local path to synchronize with S3 storage",
     )
     parser.add_argument(
         "--create_bucket",
-        type=bool,
-        default=False,
-        help="Allow creation of the bucket if not present",
+        dest="create_bucket",
+        action="store_true",
+        help="Allow creation of the bucket if not present in S3 instance",
     )
+
     parser.add_argument(
         "--aws-region",
+        dest="aws_region",
         default="us-east-1",
         help="The AWS region.",
+    )
+
+    parser.set_defaults(
+        create_bucket=False,
     )
 
     return parser.parse_args()
@@ -87,7 +83,7 @@ def get_s3_config() -> S3Configuration:
     Credentials are loaded from the .env file, and other configurations are passed through flags.
     """
 
-    credentials = get_credentials_from_env()
+    credentials = S3Credentials()
 
     args = parse_command_line_args()
 
