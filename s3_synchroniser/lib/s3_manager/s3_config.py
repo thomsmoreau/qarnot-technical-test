@@ -28,6 +28,7 @@ class S3Configuration:
     endpoint_url: str
     bucket_name: str
     create_bucket: bool
+    use_ssl: bool
     local_path: str
     aws_region: Optional[str]
 
@@ -64,15 +65,20 @@ def parse_command_line_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--use_ssl",
+        dest="use_ssl",
+        action="store_true",
+        help="Use SSL to connect to the S3 instance",
+    )
+
+    parser.add_argument(
         "--aws-region",
         dest="aws_region",
         default="us-east-1",
         help="The AWS region.",
     )
 
-    parser.set_defaults(
-        create_bucket=False,
-    )
+    parser.set_defaults(create_bucket=False, use_ssl=False)
 
     return parser.parse_args()
 
@@ -94,6 +100,7 @@ def get_s3_config() -> S3Configuration:
         bucket_name=args.bucket_name,
         aws_region=args.aws_region,
         create_bucket=args.create_bucket,
+        use_ssl=args.use_ssl,
         local_path=args.local_path,
     )
 

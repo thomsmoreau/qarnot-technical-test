@@ -32,9 +32,7 @@ class S3Manager:
             aws_access_key_id=self.s3_config.credentials.access_key,
             aws_secret_access_key=self.s3_config.credentials.secret_key,
             region_name=self.s3_config.aws_region,  # Used for AWS but not in a DEV env with minio container
-            use_ssl=(
-                False if "localhost" in self.s3_config.endpoint_url else True
-            ),  # No SSL usage in localhost mode
+            use_ssl=self.s3_config.use_ssl,
         )
 
         return s3_client
