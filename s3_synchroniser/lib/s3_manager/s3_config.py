@@ -10,6 +10,17 @@ class S3Credentials:
     access_key: str
     secret_key: str
 
+    def __init__(self):
+        # Load credentials from environment variables
+        self.access_key = os.getenv("S3_ACCESS_KEY")
+        self.secret_key = os.getenv("S3_SECRET_KEY")
+
+    # Add post_init for custom value assertions if needed
+    def __post_init__(self):
+        if not self.access_key or not self.secret_key:
+            raise ValueError(
+                "S3 credentials are missing from the .env export them as S3_ACCESS_KEY and S3_SECRET_KEY"
+            )
 
 @dataclass
 class S3Configuration:
