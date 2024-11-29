@@ -1,3 +1,5 @@
+"""Module for synchronizing local files with an S3 bucket."""
+
 import os
 import warnings
 from datetime import datetime, timezone
@@ -17,6 +19,7 @@ def sync_files_with_s3(s3_manager: S3Manager):
     """
     # Suppress HeaderParsingError warnings from urllib3
     warnings.filterwarnings("ignore", category=Warning)
+
     local_files = get_local_files(s3_manager.s3_config.local_path)
     s3_files = s3_manager.get_bucket_files()
 
