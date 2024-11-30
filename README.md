@@ -83,7 +83,7 @@ docker run \
   minio/minio server /data --console-address ":9001"
 ```
 
-Run the synchronization script using Docker:
+Run the synchronization script using Docker (Add the `--create_bucket` flag only if you want to create the bucket):
 
 ```bash
 docker run --rm \
@@ -94,26 +94,31 @@ docker run --rm \
   --endpoint_url http://MINIO_CONTAINER_IP:9000 \
   --bucket_name test \
   --local_path /app/data \
-  --create_bucket True \
-  --aws-region us-east-1
+  --create_bucket
 ```
 
 ### 3. Docker Compose (Containerized Usage)
 
-Configure environment variables:
+Configure environment variables in `.env` file:
 
 ```bash
-MINIO_ROOT_USER=ROOTUSER
-MINIO_ROOT_PASSWORD=CHANGEME123
 S3_ACCESS_KEY=ROOTUSER
 S3_SECRET_KEY=CHANGEME123
 ```
 
-Verify volumes and command arguments:
+Customize the synchronization settings in `docker-compose.yml`:
 
-```bash
-Make sure the volume mounted in docker-compose.yml points to the data you want to sync.
-Check the command arguments passed to the synchronization service.
+```yaml
+services:
+  sync-pyth:
+    # ... other settings ...
+    command: >
+      --endpoint_url http://minio:9000        # URL of your MinIO/S3 service
+      --bucket_name test                      # Name of your bucket
+      --local_path /app/data_to_sync         # Container path to sync
+      --create_bucket                        # Optional: creates bucket if missing
+    volumes:
+      - ./data_to_sync:/app/data_to_sync # Local path:Container path
 ```
 
 Run Docker Compose:
@@ -126,18 +131,24 @@ Access the MinIO GUI:
 
 ```bash
 Open your browser and navigate to http://localhost:9001.
-Log in using the credentials from your .env file.
+Log in using ROOTUSER/CHANGEME123.
 ```
 
 ## Configuration
 
 The synchronization script accepts the following command-line arguments:
 
-- `--endpoint_url`: The URL of the S3-compatible service.
-- `--bucket_name`: The name of the bucket to sync with.
-- `--local_path`: The local directory path to synchronize.
-- `--create_bucket`: Whether to create the bucket if it doesn't exist (True or False).
-- `--aws-region`: The AWS region (default is us-east-1).
+- `--endpoint_url`: The URL of the S3-compatible service (required)
+- `--bucket_name`: The name of the bucket to sync with (required)
+- `--local_path`: The local directory path to synchronize (required)
+- `--create_bucket`: Allow creation of the bucket if not present in S3 instance (optional, defaults to False)
+- `--use_ssl`: Use SSL to connect to the S3 instance (optional, defaults to False)
+- `--aws-region`: The AWS region (optional, defaults to us-east-1)
+
+Environment variables required:
+
+- `S3_ACCESS_KEY`: Your S3 access key
+- `S3_SECRET_KEY`: Your S3 secret key
 
 ## Deployment Strategy
 
@@ -202,3 +213,9 @@ The synchronization script accepts the following command-line arguments:
 - The .env file is not included in .gitignore for development purposes only. Ensure you don't commit sensitive information.
 - Consider adding checksums on files to compare their content instead of relying solely on the LastModified date for better synchronization accuracy.
 - Unit tests are planned to be added in future updates.
+- Additional basic improvements needed:
+  - Add basic file validation before transfer to prevent corruption
+  - Implement simple retry logic for failed operations
+  - Improve error handling and reporting
+  - Add basic file exclusion support (e.g., temporary files)
+  - Implement proper cleanup on script interruption
