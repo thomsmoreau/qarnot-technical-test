@@ -1,5 +1,5 @@
 import os
-from datetime import timezone
+from datetime import datetime, timezone
 
 import boto3
 import boto3.session
@@ -31,7 +31,7 @@ class S3Manager:
             endpoint_url=self.s3_config.endpoint_url,
             aws_access_key_id=self.s3_config.credentials.access_key,
             aws_secret_access_key=self.s3_config.credentials.secret_key,
-            region_name=self.s3_config.aws_region,  # Used for AWS but not in a DEV env with minio container
+            region_name=self.s3_config.aws_region,
             use_ssl=self.s3_config.use_ssl,
         )
 
@@ -55,31 +55,40 @@ class S3Manager:
             Exception: _description_
         """
         if not self.s3_config.create_bucket:
-            raise Exception(
-                "Could not create bucket since the creation of the bucket is not allowed, check 'create_bucket' flag"
+            raise PermissionError(
+                "Could not create bucket since the creation not allowed, check 'create_bucket' flag"
             )
 
         try:
             self.s3_client.create_bucket(Bucket=self.s3_config.bucket_name)
             print(f"Bucket '{self.s3_config.bucket_name}' created successfully.")
         except Exception as e:
-            print(f"Error creating bucket '{self.s3_config.bucket_name}': {e}")
+            raise ClientError(
+                error_response={
+                    "Error": {"Message": f"Failed to create bucket: {str(e)}"}
+                },
+                operation_name="create_bucket",
+            ) from e
 
-    def get_bucket_files(self):
+    def get_bucket_files(self) -> list[str]:
         """Retrieve all file names in the specified bucket.
 
-        Raises:
-            Exception: _description_
-
         Returns:
-            _type_: _description_
-        """
+            list[str]: List of file paths (keys) in the bucket
 
+        Raises:
+            Exception: If bucket creation fails or listing objects fails
+        """
         if not self.bucket_exists():
             try:
                 self.create_bucket()
             except Exception as e:
-                raise Exception(f"An error occured while checking for bucket: {e}")
+                raise ClientError(
+                    error_response={
+                        "Error": {"Message": f"Failed to create bucket: {str(e)}"}
+                    },
+                    operation_name="create_bucket",
+                ) from e
 
         file_list = []
         paginator = self.s3_client.get_paginator("list_objects_v2")
@@ -142,17 +151,18 @@ class S3Manager:
             print(f"Error deleting file '{s3_file_path}': {e}")
             return False
 
-    def get_object_last_modified(self, s3_file_path: str):
-        """Retrieve the LastModified time of a file in the S3 bucket."
+    def get_object_last_modified(self, s3_file_path: str) -> datetime | None:
+        """Retrieve the LastModified timestamp of a file in the S3 bucket.
 
         Args:
-            s3_file_path (str): _description_
-
-        Raises:
-            Exception: _description_
+            s3_file_path (str): The path (key) of the file in the S3 bucket
 
         Returns:
-            _type_: _description_
+            datetime | None: The UTC timestamp when the file was last modified,
+                           or None if LastModified information is not available
+
+        Raises:
+            ClientError: If there's an error accessing the S3 object or if the file doesn't exist
         """
 
         try:
@@ -160,10 +170,7 @@ class S3Manager:
                 Bucket=self.s3_config.bucket_name, Key=s3_file_path
             )
             last_modified = response.get("LastModified")
-            if last_modified:
-                # Ensure the datetime is timezone-aware
-                return last_modified.astimezone(timezone.utc)
-            else:
-                return None
+            return last_modified.astimezone(timezone.utc) if last_modified else None
         except ClientError as e:
-            raise Exception(f"Error retrieving LastModified for '{s3_file_path}': {e}")
+            LOGGER.error("Error retrieving LastModified for '%s': %s", s3_file_path, e)
+            raise
