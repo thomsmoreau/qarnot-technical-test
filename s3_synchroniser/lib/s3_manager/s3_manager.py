@@ -82,14 +82,15 @@ class S3Manager:
                 raise Exception(f"An error occured while checking for bucket: {e}")
 
         file_list = []
+        paginator = self.s3_client.get_paginator("list_objects_v2")
 
         try:
-            response = self.s3_client.list_objects_v2(Bucket=self.s3_config.bucket_name)
-            if "Contents" in response:
-                file_list = [obj["Key"] for obj in response["Contents"]]
-        except Exception as e:
-            print(f"Error listing files in bucket '{self.s3_config.bucket_name}': {e}")
-        return file_list
+            for page in paginator.paginate(Bucket=self.s3_config.bucket_name):
+                if "Contents" in page:
+                    file_list.extend(obj["Key"] for obj in page["Contents"])
+            return file_list
+        except ClientError as e:
+            raise e
 
     def upload_file(self, local_file_path: str, s3_path: str) -> bool:
         """Upload a local file to S3 bucket
